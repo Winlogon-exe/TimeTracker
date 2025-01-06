@@ -15,6 +15,7 @@
 #include <psapi.h>
 #include <QCloseEvent>
 #include <QPushButton>
+#include <QScrollArea>
 
 #include "logicMainWidget.h"
 
@@ -42,6 +43,8 @@ private:
     QMap<std::string, QLabel*> appLabels;
     QMap<std::string, QLabel*> iconLabels;
     QMap<std::string, QLabel*> timeLabels;
+    QVBoxLayout* appListLayout;
+
 
     QPushButton* pinButton;
     bool isPinned;

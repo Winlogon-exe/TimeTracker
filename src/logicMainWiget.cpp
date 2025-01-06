@@ -1,4 +1,4 @@
-#include "logicMainWidget.h"
+#include "LogicMainWidget.h"
 
 LogicMainWidget::LogicMainWidget()
 {
@@ -7,7 +7,12 @@ LogicMainWidget::LogicMainWidget()
     mainTimer->start(1000);  // Проверка каждую секунду
 }
 
-void LogicMainWidget::trackActiveApplication() {
+LogicMainWidget::~LogicMainWidget()
+{
+}
+
+void LogicMainWidget::trackActiveApplication()
+{
     DWORD pid = getFocusedApplicationPID();  // Получаем PID активного приложения
 
     if (pid == 0) {
@@ -15,27 +20,35 @@ void LogicMainWidget::trackActiveApplication() {
         return;
     }
 
-    // Если приложение не отслеживается, начинаем отслеживание
+    // Если приложение отслеживается в первый раз
     if (activeTimers.find(pid) == activeTimers.end())
     {
-
+        activeTimers[pid] = std::chrono::steady_clock::now();  // Запоминаем время активации
+        accumulatedTime[pid] = 0;  // Сбрасываем накопленное время
     }
     else
     {
-        // Если приложение уже отслеживается, продолжаем отсчёт времени с момента активации
+        // Если приложение уже было
         auto currentTime = std::chrono::steady_clock::now();
         auto elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(currentTime - activeTimers[pid]).count();
 
-        int totalElapsedTime = accumulatedTime[pid] = elapsedTime;
+        // Если приложение вернулось в фокус
+        if (elapsedTime > 0) {
+            accumulatedTime[pid] += elapsedTime;
+        }
+
+        activeTimers[pid] = currentTime;
+
+        int totalElapsedTime = accumulatedTime[pid];
 
         int hours = totalElapsedTime / 3600;
         int minutes = (totalElapsedTime % 3600) / 60;
         int seconds = totalElapsedTime % 60;
         std::string appName = getProcessNameByPid(pid);
 
-        qDebug() << "Active application:" << QString::fromStdString(appName)<< ", Time:" << hours << "h" << minutes << "m" << seconds << "s";
-
-        getIconForProcess(pid, hours, minutes, seconds);  // Обновляем данные на UI
+        qDebug() << "Active application:" << QString::fromStdString(appName)
+                 << ", Time:" << hours << "h" << minutes << "m" << seconds << "s";
+        getIconForProcess(pid, hours, minutes, seconds);
     }
 }
 
@@ -43,8 +56,6 @@ void LogicMainWidget::trackActiveApplication() {
 void LogicMainWidget::stopTrackingApplication(DWORD pid) {
 
 }
-
-
 
 DWORD LogicMainWidget::getFocusedApplicationPID()
 {
@@ -77,7 +88,7 @@ void LogicMainWidget::getIconForProcess(DWORD pid, int hours, int minutes, int s
                 {
                     QPixmap pixmap = QPixmap::fromImage(QImage::fromHICON(hIcon));
                     std::string appName = getProcessNameByPid(pid);
-                    emit updateUI(appName, pixmap, hours, minutes, seconds); // Отправляем обновление UI
+                    emit updateUI(appName, pixmap, hours, minutes, seconds);
                 }
                 else
                 {
@@ -104,8 +115,4 @@ std::string LogicMainWidget::getProcessNameByPid(DWORD pid)
         CloseHandle(hProcess);
     }
     return std::string(szProcessName);
-}
-
-LogicMainWidget::~LogicMainWidget()
-{
 }

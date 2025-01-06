@@ -1,6 +1,6 @@
 #include "MainWidget.h"
 
-MainWidget::MainWidget(QWidget *parent): QWidget(parent)
+MainWidget::MainWidget(QWidget *parent) : QWidget(parent)
 {
     setupUI();
     connectSignals();
@@ -12,22 +12,34 @@ MainWidget::~MainWidget()
 
 void MainWidget::setupUI()
 {
-    layout = new QVBoxLayout(this);
-    setFixedSize(300, 200);
-    layout->addWidget(new QLabel("Active Applications:"));
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
-    // Кнопка для закрепления окна поверх других
+    QLabel *titleLabel = new QLabel("Active Applications:", this);
+    mainLayout->addWidget(titleLabel);
+
+    QScrollArea *scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    QWidget *scrollWidget = new QWidget(scrollArea);
+    scrollArea->setWidget(scrollWidget);
+
+    appListLayout = new QVBoxLayout(scrollWidget);
+    appListLayout->setContentsMargins(0, 0, 0, 0);
+    appListLayout->setSpacing(10);
+
+    mainLayout->addWidget(scrollArea, 1); // Вес = 1 (занимает доступное пространство)
+
     pinButton = new QPushButton("Pin Window", this);
-    layout->addWidget(pinButton);
+    mainLayout->addWidget(pinButton, 0, Qt::AlignBottom); // Вес = 0 (фиксированный размер)
 
-    // Изначально окно не закреплено
     isPinned = false;
     connect(pinButton, &QPushButton::clicked, this, &MainWidget::togglePinWindow);
 }
 
 void MainWidget::connectSignals()
 {
-    connect(&logic,&LogicMainWidget::updateUI,this,&MainWidget::activeAppUpdate);
+    connect(&logic, &LogicMainWidget::updateUI, this, &MainWidget::activeAppUpdate);
 }
 
 void MainWidget::closeEvent(QCloseEvent *event)
@@ -43,41 +55,41 @@ void MainWidget::resizeEvent(QResizeEvent *event)
 
 void MainWidget::activeAppUpdate(const std::string &appName, const QPixmap &icon, int hours, int minutes, int seconds)
 {
-    // Проверяем, если приложение уже в списке
-    if (activeProgram.find(appName) == activeProgram.end()) {
-        // Если приложение не найдено, добавляем его
+    if (activeProgram.find(appName) == activeProgram.end())
+    {
+        QHBoxLayout *rowLayout = new QHBoxLayout();
 
-        // Название приложения
         QLabel *appLabel = new QLabel(QString::fromStdString(appName), this);
-        layout->addWidget(appLabel);
+        appLabel->setStyleSheet("font-weight: bold; font-size: 14px; color: #2E86C1;");
+        rowLayout->addWidget(appLabel, 2);
 
-        // Иконка приложения
         QLabel *iconLabel = new QLabel(this);
-        iconLabel->setPixmap(icon.scaled(32, 32)); // Иконка
-        layout->addWidget(iconLabel);
+        iconLabel->setPixmap(icon.scaled(32, 32, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        rowLayout->addWidget(iconLabel, 1);
 
-        // Время
         QLabel *timeLabel = new QLabel(this);
         timeLabel->setText(QString("%1:%2:%3")
                                    .arg(hours, 2, 10, QChar('0'))
                                    .arg(minutes, 2, 10, QChar('0'))
                                    .arg(seconds, 2, 10, QChar('0')));
-        layout->addWidget(timeLabel);
+        timeLabel->setStyleSheet("font-size: 12px; color: #34495E;");
+        timeLabel->setAlignment(Qt::AlignCenter);
+        rowLayout->addWidget(timeLabel, 1);
 
-        // Сохраняем указатели на метки для обновления в дальнейшем
+        appListLayout->addLayout(rowLayout);
+
         activeProgram[appName] = QIcon(icon);
         appLabels[appName] = appLabel;
         iconLabels[appName] = iconLabel;
         timeLabels[appName] = timeLabel;
-    } else {
-        // Если приложение уже отслеживается, обновляем только время и иконку
+    }
+    else
+    {
         QLabel *timeLabel = timeLabels[appName];
         QLabel *iconLabel = iconLabels[appName];
 
-        // Обновляем иконку
-        iconLabel->setPixmap(icon.scaled(32, 32));
+        iconLabel->setPixmap(icon.scaled(32, 32, Qt::KeepAspectRatio, Qt::SmoothTransformation));
 
-        // Обновляем время
         timeLabel->setText(QString("%1:%2:%3")
                                    .arg(hours, 2, 10, QChar('0'))
                                    .arg(minutes, 2, 10, QChar('0'))
@@ -85,31 +97,19 @@ void MainWidget::activeAppUpdate(const std::string &appName, const QPixmap &icon
     }
 }
 
-
 void MainWidget::togglePinWindow()
 {
-    // Переключаем режим закрепления окна
     if (isPinned)
     {
-        // Убираем флаг закрепления
         setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
         pinButton->setText("Pin Window");
     }
     else
     {
-        // Устанавливаем флаг закрепления
         setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
         pinButton->setText("Unpin Window");
     }
 
-    // Применяем измененные флаги и обновляем окно
-    show(); // Это необходимо, чтобы изменения флагов окна вступили в силу
+    show();
     isPinned = !isPinned;
 }
-
-
-
-
-
-
-

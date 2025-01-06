@@ -25,6 +25,8 @@ Q_OBJECT
 private:
     std::unordered_map<DWORD, std::chrono::steady_clock::time_point> activeTimers; // Используем time_point
     std::unordered_map<DWORD, int> accumulatedTime;
+    std::map<DWORD, bool> isAppInFocus;
+
 
 public:
     LogicMainWidget();
