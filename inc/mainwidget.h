@@ -23,20 +23,17 @@ class MainWidget : public QWidget
 {
 Q_OBJECT
 
-    QVBoxLayout *layout;
 public:
     MainWidget(QWidget *parent = nullptr);
     ~MainWidget();
+
+public:
+    void start();
 
 private:
     void setupUI();
     void connectSignals();
     void togglePinWindow();
-
-protected:
-    void closeEvent(QCloseEvent *event) override;
-    void resizeEvent(QResizeEvent *event) override;
-
 private:
     LogicMainWidget logic;
     QMap<std::string, QIcon> activeProgram;
@@ -44,11 +41,8 @@ private:
     QMap<std::string, QLabel*> iconLabels;
     QMap<std::string, QLabel*> timeLabels;
     QVBoxLayout* appListLayout;
-
-
     QPushButton* pinButton;
     bool isPinned;
-
 
 public slots:
     void activeAppUpdate(const std::string &appName, const QPixmap &icon, int hours, int minutes, int seconds);

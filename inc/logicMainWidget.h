@@ -23,10 +23,11 @@ class LogicMainWidget : public QObject
 Q_OBJECT
 
 private:
-    std::unordered_map<DWORD, std::chrono::steady_clock::time_point> activeTimers; // Используем time_point
+    std::unordered_map<DWORD, QElapsedTimer*> activeTimers; // Используем time_point
     std::unordered_map<DWORD, int> accumulatedTime;
-    std::map<DWORD, bool> isAppInFocus;
-
+    std::unordered_map<DWORD, bool> isAppInFocus;
+    QTimer *mainTimer;
+    DWORD currentAppPID;
 
 public:
     LogicMainWidget();
@@ -41,10 +42,10 @@ public:
 public:
     void trackActiveApplication();
     void getIconForProcess(DWORD pid, int hours, int minutes, int seconds);
+    void pauseTimer(DWORD pid,QElapsedTimer* timer);
     std::string getProcessNameByPid(DWORD pid);
-    void stopTrackingApplication(DWORD pid);
     DWORD getFocusedApplicationPID();
-
+    void startTimer();
 };
 
 #endif //WINWIDGET_LOGICMAINWIDGET_H

@@ -2,59 +2,80 @@
 
 LogicMainWidget::LogicMainWidget()
 {
-    QTimer *mainTimer = new QTimer(this);
-    connect(mainTimer, &QTimer::timeout, this, &LogicMainWidget::trackActiveApplication);
-    mainTimer->start(1000);  // Проверка каждую секунду
+
 }
 
-LogicMainWidget::~LogicMainWidget()
+void LogicMainWidget::startTimer()
 {
+    mainTimer = new QTimer(this);
+    connect(mainTimer, &QTimer::timeout, this, &LogicMainWidget::trackActiveApplication);
+    mainTimer->start(1000);
+    currentAppPID = GetCurrentProcessId();
 }
 
 void LogicMainWidget::trackActiveApplication()
 {
-    DWORD pid = getFocusedApplicationPID();  // Получаем PID активного приложения
+    DWORD pid = getFocusedApplicationPID();
 
-    if (pid == 0) {
-        qDebug() << "No active window";
+    if (pid == currentAppPID) {
+        qDebug() << "Skipping tracking for current application.";
         return;
     }
 
-    // Если приложение отслеживается в первый раз
     if (activeTimers.find(pid) == activeTimers.end())
     {
-        activeTimers[pid] = std::chrono::steady_clock::now();  // Запоминаем время активации
-        accumulatedTime[pid] = 0;  // Сбрасываем накопленное время
+        activeTimers[pid] = new QElapsedTimer();
+        activeTimers[pid]->start();
+        accumulatedTime[pid] = 0;
+        qDebug() << "Started tracking application with PID:" << pid;
     }
-    else
+
+    for (auto& pair : activeTimers)
     {
-        // Если приложение уже было
-        auto currentTime = std::chrono::steady_clock::now();
-        auto elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(currentTime - activeTimers[pid]).count();
+        DWORD trackedPID = pair.first;
+        QElapsedTimer* timer = pair.second;
 
-        // Если приложение вернулось в фокус
-        if (elapsedTime > 0) {
-            accumulatedTime[pid] += elapsedTime;
+        if (trackedPID == pid)
+        {
+            // Активное приложение:
+            if (timer->isValid())
+            {
+                int elapsed = timer->elapsed() / 1000;
+                accumulatedTime[pid] += elapsed;
+                timer->restart();
+            }
         }
-
-        activeTimers[pid] = currentTime;
-
-        int totalElapsedTime = accumulatedTime[pid];
-
-        int hours = totalElapsedTime / 3600;
-        int minutes = (totalElapsedTime % 3600) / 60;
-        int seconds = totalElapsedTime % 60;
-        std::string appName = getProcessNameByPid(pid);
-
-        qDebug() << "Active application:" << QString::fromStdString(appName)
-                 << ", Time:" << hours << "h" << minutes << "m" << seconds << "s";
-        getIconForProcess(pid, hours, minutes, seconds);
+        else
+        {
+            // Неактивное приложение:
+            if (timer->isValid())
+            {
+                pauseTimer(trackedPID, timer);
+            }
+        }
     }
+
+    int totalElapsedTime = accumulatedTime[pid];
+    int hours = totalElapsedTime / 3600;
+    int minutes = (totalElapsedTime % 3600) / 60;
+    int seconds = totalElapsedTime % 60;
+
+    std::string appName = getProcessNameByPid(pid);
+    qDebug() << "Active application:" << QString::fromStdString(appName)
+             << ", Time:" << hours << "h" << minutes << "m" << seconds << "s";
+
+    getIconForProcess(pid, hours, minutes, seconds);
 }
 
+void LogicMainWidget::pauseTimer(DWORD pid, QElapsedTimer* timer)
+{
+    if (activeTimers.find(pid) != activeTimers.end() && timer->isValid()) {
 
-void LogicMainWidget::stopTrackingApplication(DWORD pid) {
-
+        accumulatedTime[pid] += timer->elapsed() / 1000;
+        timer->invalidate();
+        qDebug() << "Paused Timer for PID:" << pid
+                 << ", Accumulated Time:" << accumulatedTime[pid] << "seconds";
+    }
 }
 
 DWORD LogicMainWidget::getFocusedApplicationPID()
@@ -79,7 +100,6 @@ void LogicMainWidget::getIconForProcess(DWORD pid, int hours, int minutes, int s
         DWORD cbNeeded;
         if (EnumProcessModules(hProcess, &hMod, sizeof(hMod), &cbNeeded))
         {
-            // Путь к исполнимому файлу процесса
             char filePath[MAX_PATH];
             if (GetModuleFileNameExA(hProcess, hMod, filePath, sizeof(filePath)))
             {
@@ -88,11 +108,14 @@ void LogicMainWidget::getIconForProcess(DWORD pid, int hours, int minutes, int s
                 {
                     QPixmap pixmap = QPixmap::fromImage(QImage::fromHICON(hIcon));
                     std::string appName = getProcessNameByPid(pid);
+                    std::string suffix = ".exe";
+                    appName = appName.substr(0, appName.size() - suffix.size());
                     emit updateUI(appName, pixmap, hours, minutes, seconds);
                 }
                 else
                 {
                     qDebug() << "Empty Icon";
+                    DestroyIcon(hIcon);
                 }
             }
         }
@@ -116,3 +139,14 @@ std::string LogicMainWidget::getProcessNameByPid(DWORD pid)
     }
     return std::string(szProcessName);
 }
+
+LogicMainWidget::~LogicMainWidget()
+{
+    for (auto& pair : activeTimers)
+    {
+        delete pair.second;
+    }
+}
+
+
+
