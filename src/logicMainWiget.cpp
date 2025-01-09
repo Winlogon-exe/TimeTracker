@@ -2,14 +2,13 @@
 
 LogicMainWidget::LogicMainWidget()
 {
-
 }
 
 void LogicMainWidget::startTimer()
 {
     mainTimer = new QTimer(this);
     connect(mainTimer, &QTimer::timeout, this, &LogicMainWidget::trackActiveApplication);
-    mainTimer->start(1000);
+    mainTimer->start(1010);
     currentAppPID = GetCurrentProcessId();
 }
 
@@ -22,6 +21,14 @@ void LogicMainWidget::trackActiveApplication()
         return;
     }
 
+    startTrackingForNewApplication(pid);
+    updateTrackingForActiveApplications(pid);
+    printApplicationTime(pid);
+    updateApplicationIcon(pid);
+}
+
+void LogicMainWidget::startTrackingForNewApplication(DWORD pid)
+{
     if (activeTimers.find(pid) == activeTimers.end())
     {
         activeTimers[pid] = new QElapsedTimer();
@@ -29,7 +36,10 @@ void LogicMainWidget::trackActiveApplication()
         accumulatedTime[pid] = 0;
         qDebug() << "Started tracking application with PID:" << pid;
     }
+}
 
+void LogicMainWidget::updateTrackingForActiveApplications(DWORD pid)
+{
     for (auto& pair : activeTimers)
     {
         DWORD trackedPID = pair.first;
@@ -37,24 +47,26 @@ void LogicMainWidget::trackActiveApplication()
 
         if (trackedPID == pid)
         {
-            // Активное приложение:
             if (timer->isValid())
             {
                 int elapsed = timer->elapsed() / 1000;
                 accumulatedTime[pid] += elapsed;
                 timer->restart();
             }
-        }
-        else
-        {
-            // Неактивное приложение:
-            if (timer->isValid())
+            else
             {
-                pauseTimer(trackedPID, timer);
+                timer->start();
             }
         }
+        else if (timer->isValid())
+        {
+            pauseTimer(trackedPID, timer); // Пауза только для неактивных
+        }
     }
+}
 
+void LogicMainWidget::printApplicationTime(DWORD pid)
+{
     int totalElapsedTime = accumulatedTime[pid];
     int hours = totalElapsedTime / 3600;
     int minutes = (totalElapsedTime % 3600) / 60;
@@ -63,18 +75,28 @@ void LogicMainWidget::trackActiveApplication()
     std::string appName = getProcessNameByPid(pid);
     qDebug() << "Active application:" << QString::fromStdString(appName)
              << ", Time:" << hours << "h" << minutes << "m" << seconds << "s";
+}
+
+void LogicMainWidget::updateApplicationIcon(DWORD pid)
+{
+    int totalElapsedTime = accumulatedTime[pid];
+    int hours = totalElapsedTime / 3600;
+    int minutes = (totalElapsedTime % 3600) / 60;
+    int seconds = totalElapsedTime % 60;
 
     getIconForProcess(pid, hours, minutes, seconds);
 }
 
 void LogicMainWidget::pauseTimer(DWORD pid, QElapsedTimer* timer)
 {
-    if (activeTimers.find(pid) != activeTimers.end() && timer->isValid()) {
-
-        accumulatedTime[pid] += timer->elapsed() / 1000;
+    if (activeTimers.find(pid) != activeTimers.end() && timer->isValid())
+    {
+        int elapsed = timer->elapsed() / 1000;
+        accumulatedTime[pid] += elapsed;
         timer->invalidate();
         qDebug() << "Paused Timer for PID:" << pid
-                 << ", Accumulated Time:" << accumulatedTime[pid] << "seconds";
+                 << ", Elapsed:" << elapsed
+                 << ", Total Accumulated Time:" << accumulatedTime[pid] << "seconds";
     }
 }
 
