@@ -8,7 +8,7 @@ void LogicMainWidget::startTimer()
 {
     mainTimer = new QTimer(this);
     connect(mainTimer, &QTimer::timeout, this, &LogicMainWidget::trackActiveApplication);
-    mainTimer->start(1010);
+    mainTimer->start(1001);
     currentAppPID = GetCurrentProcessId();
 }
 
@@ -60,7 +60,7 @@ void LogicMainWidget::updateTrackingForActiveApplications(DWORD pid)
         }
         else if (timer->isValid())
         {
-            pauseTimer(trackedPID, timer); // Пауза только для неактивных
+            pauseTimer(trackedPID, timer);
         }
     }
 }
@@ -79,12 +79,21 @@ void LogicMainWidget::printApplicationTime(DWORD pid)
 
 void LogicMainWidget::updateApplicationIcon(DWORD pid)
 {
-    int totalElapsedTime = accumulatedTime[pid];
-    int hours = totalElapsedTime / 3600;
-    int minutes = (totalElapsedTime % 3600) / 60;
-    int seconds = totalElapsedTime % 60;
-
-    getIconForProcess(pid, hours, minutes, seconds);
+    if (iconCache.find(pid) == iconCache.end())
+    {
+        int hours = accumulatedTime[pid] / 3600;
+        int minutes = (accumulatedTime[pid] % 3600) / 60;
+        int seconds = accumulatedTime[pid] % 60;
+        iconCache[pid] = getIconForProcess(pid);
+        emit updateUI(getProcessNameByPid(pid), iconCache[pid], hours, minutes, seconds);
+    }
+    else
+    {
+        int hours = accumulatedTime[pid] / 3600;
+        int minutes = (accumulatedTime[pid] % 3600) / 60;
+        int seconds = accumulatedTime[pid] % 60;
+        emit updateUI(getProcessNameByPid(pid), iconCache[pid], hours,minutes, seconds);
+    }
 }
 
 void LogicMainWidget::pauseTimer(DWORD pid, QElapsedTimer* timer)
@@ -103,7 +112,8 @@ void LogicMainWidget::pauseTimer(DWORD pid, QElapsedTimer* timer)
 DWORD LogicMainWidget::getFocusedApplicationPID()
 {
     HWND hwnd = GetForegroundWindow();
-    if (hwnd == NULL) {
+    if (hwnd == NULL)
+    {
         return 0;
     }
 
@@ -113,7 +123,7 @@ DWORD LogicMainWidget::getFocusedApplicationPID()
     return pid;
 }
 
-void LogicMainWidget::getIconForProcess(DWORD pid, int hours, int minutes, int seconds)
+QPixmap LogicMainWidget::getIconForProcess(DWORD pid)
 {
     HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
     if (hProcess != NULL)
@@ -129,20 +139,15 @@ void LogicMainWidget::getIconForProcess(DWORD pid, int hours, int minutes, int s
                 if (hIcon != NULL)
                 {
                     QPixmap pixmap = QPixmap::fromImage(QImage::fromHICON(hIcon));
-                    std::string appName = getProcessNameByPid(pid);
-                    std::string suffix = ".exe";
-                    appName = appName.substr(0, appName.size() - suffix.size());
-                    emit updateUI(appName, pixmap, hours, minutes, seconds);
-                }
-                else
-                {
-                    qDebug() << "Empty Icon";
                     DestroyIcon(hIcon);
+                    CloseHandle(hProcess);
+                    return pixmap;
                 }
             }
         }
         CloseHandle(hProcess);
     }
+    return QPixmap();
 }
 
 std::string LogicMainWidget::getProcessNameByPid(DWORD pid)

@@ -12,7 +12,7 @@ MainWidget::~MainWidget()
 
 void MainWidget::start()
 {
-    logic.startTimer();
+    logic.startTimer(); //мб логику передавать в конструктор?
 }
 
 void MainWidget::setupUI()
@@ -28,6 +28,7 @@ void MainWidget::setupUI()
     setupScrollArea(mainLayout);
     setupPinButton(mainLayout);
     setupIconApp();
+    setupTrayIcon();
 
     isPinned = false;
     connect(pinButton, &QPushButton::clicked, this, &MainWidget::togglePinWindow);
@@ -82,12 +83,12 @@ void MainWidget::setupHeader(QVBoxLayout *layout)
 
 void MainWidget::connectSignals()
 {
-    connect(&logic, &LogicMainWidget::updateUI, this, &MainWidget::activeAppUpdate);
+    connect(&logic, &LogicMainWidget::updateUI, this, &MainWidget::activeAppUpdate); // вызывается каждую секунду
 }
 
 void MainWidget::activeAppUpdate(const std::string &appName, const QPixmap &icon, int hours, int minutes, int seconds)
 {
-    if (activeProgram.find(appName) == activeProgram.end())
+    if (activePrograms.find(appName) == activePrograms.end())
     {
         addNewAppRow(appName, icon, hours, minutes, seconds);
     }
@@ -100,7 +101,7 @@ void MainWidget::activeAppUpdate(const std::string &appName, const QPixmap &icon
 
 void MainWidget::addNewAppRow(const std::string &appName, const QPixmap &icon, int hours, int minutes, int seconds)
 {
-    QHBoxLayout *rowLayout = new QHBoxLayout();
+    rowLayout = new QHBoxLayout();
 
     QLabel *iconLabel = createIconLabel(icon);
     QLabel *appLabel = createAppLabel(appName);
@@ -112,19 +113,16 @@ void MainWidget::addNewAppRow(const std::string &appName, const QPixmap &icon, i
 
     appListLayout->addLayout(rowLayout);
 
-    activeProgram[appName] = QIcon(icon);
-    iconLabels[appName] = iconLabel;
-    appLabels[appName] = appLabel;
-    timeLabels[appName] = timeLabel;
+    AppInfo appInfo = { appName, icon, iconLabel, appLabel, timeLabel };
+    activePrograms[appName] = appInfo;
 }
 
 void MainWidget::updateExistingAppRow(const std::string &appName, const QPixmap &icon, int hours, int minutes, int seconds)
 {
-    QLabel *iconLabel = iconLabels[appName];
-    QLabel *timeLabel = timeLabels[appName];
+    AppInfo &appInfo = activePrograms[appName];
 
-    iconLabel->setPixmap(icon.scaled(32, 32, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    timeLabel->setText(formatTime(hours, minutes, seconds));
+    appInfo.iconLabel->setPixmap(icon.scaled(32, 32, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    appInfo.timeLabel->setText(formatTime(hours, minutes, seconds));
 }
 
 QLabel* MainWidget::createIconLabel(const QPixmap &icon)
@@ -183,15 +181,15 @@ void MainWidget::togglePinWindow()
 void MainWidget::highlightActiveApp(const std::string &appName)
 {
     // Снимаем выделение со всех приложений
-    for (auto it = appLabels.begin(); it != appLabels.end(); ++it)
+    for (auto it = activePrograms.begin(); it != activePrograms.end(); ++it)
     {
-        QLabel *label = it.value();
+        QLabel *label = it.value().appLabel;
         label->setStyleSheet("font-size: 14px; font-weight: bold; color: #6cb4f0;");
     }
 
-    if (appLabels.contains(appName))
+    if (activePrograms.contains(appName))
     {
-        QLabel *appLabel = appLabels[appName];
+        QLabel *appLabel = activePrograms[appName].appLabel;
         appLabel->setStyleSheet(
                 "font-size: 14px; font-weight: bold; color: #ffffff; "
                 "background-color: #2e86c1; padding: 5px; border: 2px solid #1f669a; border-radius: 5px;");
@@ -201,9 +199,51 @@ void MainWidget::highlightActiveApp(const std::string &appName)
 void MainWidget::setupIconApp()
 {
     QString appPath = QCoreApplication::applicationDirPath();
-    QString iconPath = appPath + "/icon/icon.png"; // Убедитесь, что иконка добавлена в ресурсы проекта
+    QString iconPath = appPath + "/icon/icon.png";
     QIcon appIcon(iconPath);
-    qDebug()<<appIcon;
     this->setWindowIcon(appIcon);
     QApplication::setWindowIcon(appIcon);
 }
+
+void MainWidget::setupTrayIcon()
+{
+    trayIcon = new QSystemTrayIcon(this);
+    trayIcon->setIcon(windowIcon());
+    trayIcon->setToolTip("WinWidget");
+
+    trayMenu = new QMenu(this);
+    restoreAction = new QAction("Открыть", this);
+    quitAction = new QAction("Выход", this);
+
+    trayMenu->addAction(restoreAction);
+    trayMenu->addSeparator();
+    trayMenu->addAction(quitAction);
+
+    trayIcon->setContextMenu(trayMenu);
+
+    connect(restoreAction, &QAction::triggered, this, &QWidget::showNormal);
+    connect(quitAction, &QAction::triggered, qApp, &QApplication::quit);
+
+    connect(trayIcon, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason)
+    {
+        if (reason == QSystemTrayIcon::Trigger)
+        {
+            this->showNormal();
+        }
+    });
+
+    trayIcon->show();
+}
+
+void MainWidget::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::WindowStateChange)
+    {
+        if (this->windowState() & Qt::WindowMinimized)
+        {
+            hide();
+        }
+    }
+    QWidget::changeEvent(event);
+}
+

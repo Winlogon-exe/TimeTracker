@@ -18,13 +18,24 @@
 #include <QPushButton>
 #include <QScrollArea>
 #include <QApplication>
+#include <QSystemTrayIcon>
+#include <QMenu>
+#include <QAction>
 
 #include "logicMainWidget.h"
+
+struct AppInfo {
+    std::string name;
+    QPixmap icon;
+    QLabel *iconLabel;
+    QLabel *appLabel;
+    QLabel *timeLabel;
+    int totalTimeInSeconds;
+};
 
 class MainWidget : public QWidget
 {
 Q_OBJECT
-
 
 public:
     MainWidget(QWidget *parent = nullptr);
@@ -45,25 +56,32 @@ private:
     void setupSeparator(QVBoxLayout *mainLayout);
     void setupScrollArea(QVBoxLayout *mainLayout);
     void setupPinButton(QVBoxLayout *mainLayout);
+    void setupTrayIcon();
     void setupIconApp();
+
     void addNewAppRow(const std::string &appName, const QPixmap &icon, int hours, int minutes, int seconds);
     void updateExistingAppRow(const std::string &appName, const QPixmap &icon, int hours, int minutes, int seconds);
     void connectSignals();
     void togglePinWindow();
     void highlightActiveApp(const std::string &appName);
+    void changeEvent(QEvent *event);
 
 private:
-    LogicMainWidget logic;
-    QMap<std::string, QIcon> activeProgram;
-    QMap<std::string, QLabel*> appLabels;
-    QMap<std::string, QLabel*> iconLabels;
-    QMap<std::string, QLabel*> timeLabels;
-    QVBoxLayout* appListLayout;
-    QPushButton* pinButton;
-    bool isPinned;
+    LogicMainWidget             logic;
+    QMap<std::string, AppInfo>  activePrograms;
+    QVBoxLayout                 *appListLayout;
+    QPushButton                 *pinButton;
+    bool                        isPinned;
+
+    QSystemTrayIcon             *trayIcon;
+    QMenu                       *trayMenu;
+    QAction                     *restoreAction;
+    QAction                     *quitAction;
+    QHBoxLayout                 *rowLayout;
 
 public slots:
     void activeAppUpdate(const std::string &appName, const QPixmap &icon, int hours, int minutes, int seconds);
 };
+
 
 #endif // MAINWIDGET_H
