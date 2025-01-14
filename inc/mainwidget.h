@@ -33,7 +33,7 @@ struct AppInfo {
     int         totalTime;
 };
 
-class MainWidget : public QWidget
+class MainWidget final : public QWidget
 {
 Q_OBJECT
 
@@ -52,34 +52,36 @@ private:
 
 private:
     void setupUI();
-    void setupHeader(QVBoxLayout *mainLayout);
-    void setupSeparator(QVBoxLayout *mainLayout);
-    void setupScrollArea(QVBoxLayout *mainLayout);
-    void setupPinButton(QVBoxLayout *mainLayout);
-    void setupTrayIcon();
     void setupIconApp();
+    void setupTrayIcon();
+    void setupPinButton(QVBoxLayout *mainLayout); // можно и не через параметр)
+    void setupScrollArea(QVBoxLayout *mainLayout);
+    void setupSeparator(QVBoxLayout *mainLayout);
+    void setupHeader(QVBoxLayout *mainLayout);
 
+    void connectSignals();
+    void sortAppsByTime();
+    void togglePinWindow();
+    void changeEvent(QEvent *event) override;
+    void highlightActiveApp(const std::string &appName);
     void addNewAppRow(const std::string &appName, const QPixmap &icon, int hours, int minutes, int seconds);
     void updateExistingAppRow(const std::string &appName, const QPixmap &icon, int hours, int minutes, int seconds);
-    void connectSignals();
-    void togglePinWindow();
-    void highlightActiveApp(const std::string &appName);
-    void changeEvent(QEvent *event);
-    void sortAppsByTime();
 
 private:
-    LogicMainWidget             logic;
+    QString                     nameApp = "TimeTracker";
     QMap<std::string, AppInfo>  activePrograms;
     QVBoxLayout                 *appListLayout;
-    QPushButton                 *pinButton;
-    bool                        isPinned = false;
+    LogicMainWidget             logic;
 
-    QSystemTrayIcon             *trayIcon;
-    QMenu                       *trayMenu;
     QAction                     *restoreAction;
     QAction                     *quitAction;
     QHBoxLayout                 *rowLayout;
+    QPushButton                 *pinButton;
+    QSystemTrayIcon             *trayIcon;
+    QMenu                       *trayMenu;
 
+private:
+    bool                        isPinned = false;
 
 public slots:
     void activeAppUpdate(const std::string &appName, const QPixmap &icon, int hours, int minutes, int seconds);

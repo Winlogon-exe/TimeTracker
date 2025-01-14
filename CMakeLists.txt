@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(winWidget VERSION 0.1 LANGUAGES CXX)
+project(TimerTracker VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -21,45 +21,45 @@ set(PROJECT_SOURCES
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(winWidget
-        MANUAL_FINALIZATION
-        ${PROJECT_SOURCES}
+    qt_add_executable(TimerTracker
+            MANUAL_FINALIZATION
+            ${PROJECT_SOURCES}
     )
 
 else()
     if(ANDROID)
-        add_library(winWidget SHARED
-            ${PROJECT_SOURCES}
+        add_library(TimerTracker SHARED
+                ${PROJECT_SOURCES}
         )
     else()
-        add_executable(winWidget
-            ${PROJECT_SOURCES}
+        add_executable(TimerTracker
+                ${PROJECT_SOURCES}
         )
     endif()
 endif()
 
-target_link_libraries(winWidget PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
-target_include_directories(winWidget PRIVATE ${CMAKE_SOURCE_DIR}/inc)
-target_include_directories(winWidget PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(TimerTracker PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+target_include_directories(TimerTracker PRIVATE ${CMAKE_SOURCE_DIR}/inc)
+target_include_directories(TimerTracker PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
 if(${QT_VERSION} VERSION_LESS 6.1.0)
-  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.winWidget)
+    set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.TimerTracker)
 endif()
-set_target_properties(winWidget PROPERTIES
-    ${BUNDLE_ID_OPTION}
-    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-    MACOSX_BUNDLE TRUE
-    WIN32_EXECUTABLE FALSE
+set_target_properties(TimerTracker PROPERTIES
+        ${BUNDLE_ID_OPTION}
+        MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+        MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+        MACOSX_BUNDLE TRUE
+        WIN32_EXECUTABLE FALSE
 )
 
 include(GNUInstallDirs)
-install(TARGETS winWidget
-    BUNDLE DESTINATION .
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+install(TARGETS TimerTracker
+        BUNDLE DESTINATION .
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
 if(QT_VERSION_MAJOR EQUAL 6)
-    qt_finalize_executable(winWidget)
+    qt_finalize_executable(TimerTracker)
 endif()

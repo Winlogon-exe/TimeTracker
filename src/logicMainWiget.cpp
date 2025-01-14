@@ -174,6 +174,3 @@ LogicMainWidget::~LogicMainWidget()
         delete pair.second;
     }
 }
-
-
-

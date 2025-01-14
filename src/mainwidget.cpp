@@ -57,7 +57,7 @@ void MainWidget::setupPinButton(QVBoxLayout *layout)
             "  border: none; padding: 8px 15px; border-radius: 5px;"
             "}"
             "QPushButton:hover { background-color: #1f669a; }"
-            "QPushButton:pressed { background-color: #14496d; }"); // сделать норм css
+            "QPushButton:pressed { background-color: #14496d; }"); // сделать норм css не в коде
     layout->addWidget(pinButton, 0, Qt::AlignCenter);
 }
 
@@ -80,7 +80,7 @@ void MainWidget::setupHeader(QVBoxLayout *layout)
 
 void MainWidget::connectSignals()
 {
-    connect(&logic, &LogicMainWidget::updateUI, this, &MainWidget::activeAppUpdate); // вызывается каждую секунду
+    connect(&logic, &LogicMainWidget::updateUI, this, &MainWidget::activeAppUpdate); // activeAppUpdate вызывается каждую секунду
     connect(pinButton, &QPushButton::clicked, this, &MainWidget::togglePinWindow);
 }
 
@@ -114,7 +114,6 @@ void MainWidget::sortAppsByTime()
     for (const AppInfo &appInfo : sortedApps)
     {
         rowLayout = new QHBoxLayout();
-
         rowLayout->addWidget(appInfo.iconLabel, 0);
         rowLayout->addWidget(appInfo.appLabel, 2);
         rowLayout->addWidget(appInfo.timeLabel, 0);
@@ -242,7 +241,7 @@ void MainWidget::setupTrayIcon()
 {
     trayIcon = new QSystemTrayIcon(this);
     trayIcon->setIcon(windowIcon());
-    trayIcon->setToolTip("WinWidget");
+    trayIcon->setToolTip(nameApp);
 
     trayMenu = new QMenu(this);
     restoreAction = new QAction("Открыть", this);

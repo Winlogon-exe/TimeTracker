@@ -18,7 +18,7 @@
 #include <QPixmap>
 #include <psapi.h>
 
-class LogicMainWidget : public QObject
+class LogicMainWidget final : public QObject
 {
 Q_OBJECT
 
@@ -27,29 +27,32 @@ public:
     ~LogicMainWidget();
 
 public:
-    void trackActiveApplication();
-    QPixmap getIconForProcess(DWORD pid);
-    void pauseTimer(DWORD pid,QElapsedTimer* timer);
     void startTimer();
-    void startTrackingForNewApplication(DWORD pid);
-    void updateTrackingForActiveApplications(DWORD pid);
+
+private:
+    DWORD       getFocusedApplicationPID();
+    QPixmap     getIconForProcess(DWORD pid);
+    std::string getProcessNameByPid(DWORD pid);
+
+private:
+    void trackActiveApplication();
     void printApplicationTime(DWORD pid);
     void updateApplicationIcon(DWORD pid);
-
-    std::string getProcessNameByPid(DWORD pid);
-    DWORD getFocusedApplicationPID();
+    void startTrackingForNewApplication(DWORD pid);
+    void pauseTimer(DWORD pid,QElapsedTimer* timer);
+    void updateTrackingForActiveApplications(DWORD pid);
 
 signals:
      void updateUI(const std::string& appName,QPixmap &icon, int hours, int minutes, int seconds);
 
 private:
-    std::unordered_map<DWORD, QElapsedTimer*> activeTimers;
-    std::unordered_map<DWORD, int> accumulatedTime;
-    std::unordered_map<DWORD, bool> isAppInFocus;
-    std::unordered_map<DWORD, QPixmap> iconCache;
-    QMap<DWORD, QPixmap> processIcons;
-    DWORD currentAppPID;
-    QTimer *mainTimer;
+    QTimer                                      *mainTimer;
+    DWORD                                       currentAppPID;
+    QMap<DWORD, QPixmap>                        processIcons;       // заменить на struct
+    std::unordered_map<DWORD, QPixmap>          iconCache;          // заменить на struct
+    std::unordered_map<DWORD, QElapsedTimer*>   activeTimers;       // заменить на struct
+    std::unordered_map<DWORD, bool>             isAppInFocus;       // заменить на struct
+    std::unordered_map<DWORD, int>              accumulatedTime;    // заменить на struct
 };
 
 #endif //WINWIDGET_LOGICMAINWIDGET_H
