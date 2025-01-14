@@ -26,11 +26,11 @@
 
 struct AppInfo {
     std::string name;
-    QPixmap icon;
-    QLabel *iconLabel;
-    QLabel *appLabel;
-    QLabel *timeLabel;
-    int totalTimeInSeconds;
+    QPixmap     icon;
+    QLabel      *iconLabel;
+    QLabel      *appLabel;
+    QLabel      *timeLabel;
+    int         totalTime;
 };
 
 class MainWidget : public QWidget
@@ -65,19 +65,21 @@ private:
     void togglePinWindow();
     void highlightActiveApp(const std::string &appName);
     void changeEvent(QEvent *event);
+    void sortAppsByTime();
 
 private:
     LogicMainWidget             logic;
     QMap<std::string, AppInfo>  activePrograms;
     QVBoxLayout                 *appListLayout;
     QPushButton                 *pinButton;
-    bool                        isPinned;
+    bool                        isPinned = false;
 
     QSystemTrayIcon             *trayIcon;
     QMenu                       *trayMenu;
     QAction                     *restoreAction;
     QAction                     *quitAction;
     QHBoxLayout                 *rowLayout;
+
 
 public slots:
     void activeAppUpdate(const std::string &appName, const QPixmap &icon, int hours, int minutes, int seconds);

@@ -29,9 +29,6 @@ void MainWidget::setupUI()
     setupPinButton(mainLayout);
     setupIconApp();
     setupTrayIcon();
-
-    isPinned = false;
-    connect(pinButton, &QPushButton::clicked, this, &MainWidget::togglePinWindow);
 }
 
 void MainWidget::setupScrollArea(QVBoxLayout *layout)
@@ -60,7 +57,7 @@ void MainWidget::setupPinButton(QVBoxLayout *layout)
             "  border: none; padding: 8px 15px; border-radius: 5px;"
             "}"
             "QPushButton:hover { background-color: #1f669a; }"
-            "QPushButton:pressed { background-color: #14496d; }");
+            "QPushButton:pressed { background-color: #14496d; }"); // сделать норм css
     layout->addWidget(pinButton, 0, Qt::AlignCenter);
 }
 
@@ -84,6 +81,7 @@ void MainWidget::setupHeader(QVBoxLayout *layout)
 void MainWidget::connectSignals()
 {
     connect(&logic, &LogicMainWidget::updateUI, this, &MainWidget::activeAppUpdate); // вызывается каждую секунду
+    connect(pinButton, &QPushButton::clicked, this, &MainWidget::togglePinWindow);
 }
 
 void MainWidget::activeAppUpdate(const std::string &appName, const QPixmap &icon, int hours, int minutes, int seconds)
@@ -97,6 +95,32 @@ void MainWidget::activeAppUpdate(const std::string &appName, const QPixmap &icon
         updateExistingAppRow(appName, icon, hours, minutes, seconds);
     }
     highlightActiveApp(appName);
+}
+
+void MainWidget::sortAppsByTime()
+{
+    QVector<AppInfo> sortedApps = activePrograms.values().toVector();
+    std::sort(sortedApps.begin(), sortedApps.end(), [](const AppInfo &a, const AppInfo &b)
+    {
+        return a.totalTime > b.totalTime;
+    });
+
+    while (QLayoutItem *item = appListLayout->takeAt(0))
+    {
+        delete item->widget();
+        delete item;
+    }
+
+    for (const AppInfo &appInfo : sortedApps)
+    {
+        rowLayout = new QHBoxLayout();
+
+        rowLayout->addWidget(appInfo.iconLabel, 0);
+        rowLayout->addWidget(appInfo.appLabel, 2);
+        rowLayout->addWidget(appInfo.timeLabel, 0);
+
+        appListLayout->addLayout(rowLayout);
+    }
 }
 
 void MainWidget::addNewAppRow(const std::string &appName, const QPixmap &icon, int hours, int minutes, int seconds)
@@ -121,8 +145,17 @@ void MainWidget::updateExistingAppRow(const std::string &appName, const QPixmap 
 {
     AppInfo &appInfo = activePrograms[appName];
 
+    int timeInSeconds = hours  + minutes  + seconds;
+    int elapsedTime = timeInSeconds - appInfo.totalTime;
+
+    appInfo.totalTime = timeInSeconds;
     appInfo.iconLabel->setPixmap(icon.scaled(32, 32, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     appInfo.timeLabel->setText(formatTime(hours, minutes, seconds));
+
+    if (elapsedTime > 0)
+    {
+        sortAppsByTime();
+    }
 }
 
 QLabel* MainWidget::createIconLabel(const QPixmap &icon)
