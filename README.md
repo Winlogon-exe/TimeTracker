@@ -6,7 +6,3 @@ TimerTracker — мини-приложение для личного испол�
 ## Пример
 
 ![TimerTracker GIF](http://surl.li/xrgbwp)
-
-## Лицензия
-
-MIT License
