@@ -80,7 +80,7 @@ void MainWidget::setupHeader(QVBoxLayout *layout)
 
 void MainWidget::connectSignals()
 {
-    connect(&logic, &LogicMainWidget::updateUI, this, &MainWidget::activeAppUpdate); // activeAppUpdate вызывается каждую секунду
+    connect(&logic, &LogicMainWidget::updateUI, this, &MainWidget::activeAppUpdate);
     connect(pinButton, &QPushButton::clicked, this, &MainWidget::togglePinWindow);
 }
 
